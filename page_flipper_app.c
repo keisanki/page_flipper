@@ -5,6 +5,7 @@
 #include <gui/view_dispatcher.h>
 #include <bt/bt_service/bt.h>
 #include <extra_profiles/hid_profile.h>
+#include <string.h>
 
 #define TAG "PageFlipper"
 
@@ -27,6 +28,7 @@ typedef enum {
 typedef struct {
     bool connected;
     bool started;
+    char status_text[32];
     uint16_t last_hid_key;
     uint32_t last_press_timestamp;
 } PageFlipperModel;
@@ -109,7 +111,10 @@ static void page_flipper_draw_callback(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 0, AlignCenter, AlignTop, "Page Flipper");
 
-    if(!my_model->started) {
+    if(my_model->status_text[0] != '\0') {
+         canvas_set_font(canvas, FontSecondary);
+         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, my_model->status_text);
+    } else if(!my_model->started) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "Connect to PageFlipper...");
     } else {
@@ -275,13 +280,19 @@ PageFlipperApp* page_flipper_app_alloc() {
     
     if (ble_profile_hid == NULL) {
          FURI_LOG_E(TAG, "ble_profile_hid is NULL!");
+         with_view_model(
+            app->main_view,
+            PageFlipperModel * model,
+            {
+                strncpy(model->status_text, "Error: HID Profile NULL", sizeof(model->status_text));
+            },
+            true);
     } else {
          FURI_LOG_I(TAG, "Starting BLE profile...");
+         app->ble_profile = bt_profile_start(app->bt, ble_profile_hid, &params);
+         FURI_LOG_I(TAG, "BLE profile started.");
+         bt_set_status_changed_callback(app->bt, page_flipper_bt_status_callback, app);
     }
-
-    app->ble_profile = bt_profile_start(app->bt, ble_profile_hid, &params);
-    FURI_LOG_I(TAG, "BLE profile started.");
-    bt_set_status_changed_callback(app->bt, page_flipper_bt_status_callback, app);
 
     // Initialize Timer
     app->timer = furi_timer_alloc(page_flipper_timer_callback, FuriTimerTypeOnce, app);
