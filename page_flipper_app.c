@@ -264,6 +264,7 @@ PageFlipperApp* page_flipper_app_alloc() {
     view_dispatcher_switch_to_view(app->view_dispatcher, PageFlipperViewMain);
 
     // Initialize BT
+    FURI_LOG_I(TAG, "Initializing BT...");
     bt_disconnect(app->bt);
     furi_delay_ms(200);
     bt_keys_storage_set_default_path(app->bt);
@@ -271,7 +272,15 @@ PageFlipperApp* page_flipper_app_alloc() {
         .device_name_prefix = "PageFlip",
         .mac_xor = 0x0000,
     };
+    
+    if (ble_profile_hid == NULL) {
+         FURI_LOG_E(TAG, "ble_profile_hid is NULL!");
+    } else {
+         FURI_LOG_I(TAG, "Starting BLE profile...");
+    }
+
     app->ble_profile = bt_profile_start(app->bt, ble_profile_hid, &params);
+    FURI_LOG_I(TAG, "BLE profile started.");
     bt_set_status_changed_callback(app->bt, page_flipper_bt_status_callback, app);
 
     // Initialize Timer
