@@ -6,6 +6,7 @@ App(
     stack_size=2 * 1024,
     fap_category="Bluetooth",
     fap_version="1.0",
+    fap_icon="page_flipper.png",
     fap_description="Bluetooth remote for page flipping using foot pedals or keypad.",
     fap_author="Florian Schaefer",
     fap_weburl="https://github.com/keisanki/page_flipper",
