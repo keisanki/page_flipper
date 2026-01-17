@@ -8,14 +8,25 @@
 
 #define TAG "PageFlipper"
 
+#define HID_KEYBOARD_UP_ARROW 0x52
+#define HID_KEYBOARD_DOWN_ARROW 0x51
+#define HID_KEYBOARD_LEFT_ARROW 0x50
+#define HID_KEYBOARD_RIGHT_ARROW 0x4F
+
 typedef enum {
     PageFlipperViewMain,
 } PageFlipperViewId;
 
+typedef enum {
+    PageFlipperEventA7Press,
+    PageFlipperEventA7DoublePress,
+    PageFlipperEventA6Press,
+} PageFlipperCustomEvent;
+
 typedef struct {
     bool connected;
-    InputKey last_key;
-    bool key_pressed;
+    uint16_t last_hid_key;
+    uint32_t last_press_timestamp;
 } PageFlipperModel;
 
 typedef struct {
@@ -24,6 +35,7 @@ typedef struct {
     Bt* bt;
     View* main_view;
     FuriHalBleProfileBase* ble_profile;
+    FuriTimer* timer;
 } PageFlipperApp;
 
 static void page_flipper_draw_callback(Canvas* canvas, void* model) {
@@ -35,16 +47,43 @@ static void page_flipper_draw_callback(Canvas* canvas, void* model) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "Connect to PageFlipper...");
     } else {
+        uint32_t now = furi_get_tick();
+        bool flashing = (now - my_model->last_press_timestamp < 200);
+        uint16_t key = flashing ? my_model->last_hid_key : 0;
+
         // Draw arrow keys
-        canvas_draw_frame(canvas, 60, 20, 8, 8); // Up
-        canvas_draw_frame(canvas, 60, 40, 8, 8); // Down
-        canvas_draw_frame(canvas, 45, 30, 8, 8); // Left
-        canvas_draw_frame(canvas, 75, 30, 8, 8); // Right
+        if(key == HID_KEYBOARD_UP_ARROW) canvas_draw_box(canvas, 60, 20, 8, 8);
+        else canvas_draw_frame(canvas, 60, 20, 8, 8);
+
+        if(key == HID_KEYBOARD_DOWN_ARROW) canvas_draw_box(canvas, 60, 40, 8, 8);
+        else canvas_draw_frame(canvas, 60, 40, 8, 8);
+
+        if(key == HID_KEYBOARD_LEFT_ARROW) canvas_draw_box(canvas, 45, 30, 8, 8);
+        else canvas_draw_frame(canvas, 45, 30, 8, 8);
+
+        if(key == HID_KEYBOARD_RIGHT_ARROW) canvas_draw_box(canvas, 75, 30, 8, 8);
+        else canvas_draw_frame(canvas, 75, 30, 8, 8);
     }
 
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 0, 64, AlignLeft, AlignBottom, "OK: Help");
     canvas_draw_str_aligned(canvas, 128, 64, AlignRight, AlignBottom, "Back: Exit");
+}
+
+static void page_flipper_send_key(PageFlipperApp* app, uint16_t hid_key) {
+    if(!app->ble_profile) return;
+    ble_profile_hid_kb_press(app->ble_profile, hid_key);
+    furi_delay_ms(20);
+    ble_profile_hid_kb_release(app->ble_profile, hid_key);
+
+    with_view_model(
+        app->main_view,
+        PageFlipperModel * model,
+        {
+            model->last_hid_key = hid_key;
+            model->last_press_timestamp = furi_get_tick();
+        },
+        true);
 }
 
 static void page_flipper_bt_status_callback(BtStatus status, void* context) {
@@ -61,12 +100,62 @@ static void page_flipper_bt_status_callback(BtStatus status, void* context) {
 
 static bool page_flipper_input_callback(InputEvent* event, void* context) {
     PageFlipperApp* app = context;
-    if(event->type == InputTypeShort && event->key == InputKeyBack) {
-        view_dispatcher_stop(app->view_dispatcher);
+    if(event->type == InputTypeShort) {
+        if(event->key == InputKeyBack) {
+            view_dispatcher_stop(app->view_dispatcher);
+            return true;
+        } else if(event->key == InputKeyOk) {
+            // TODO: Help
+            return true;
+        } else {
+            uint16_t hid_key = 0;
+            if(event->key == InputKeyUp) hid_key = HID_KEYBOARD_UP_ARROW;
+            else if(event->key == InputKeyDown) hid_key = HID_KEYBOARD_DOWN_ARROW;
+            else if(event->key == InputKeyLeft) hid_key = HID_KEYBOARD_LEFT_ARROW;
+            else if(event->key == InputKeyRight) hid_key = HID_KEYBOARD_RIGHT_ARROW;
+
+            if(hid_key) {
+                page_flipper_send_key(app, hid_key);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool page_flipper_custom_event_callback(void* context, uint32_t event) {
+    PageFlipperApp* app = context;
+    if(event == PageFlipperEventA7Press) {
+        page_flipper_send_key(app, HID_KEYBOARD_RIGHT_ARROW);
+        return true;
+    } else if(event == PageFlipperEventA7DoublePress) {
+        page_flipper_send_key(app, HID_KEYBOARD_LEFT_ARROW);
+        return true;
+    } else if(event == PageFlipperEventA6Press) {
+        page_flipper_send_key(app, HID_KEYBOARD_LEFT_ARROW);
         return true;
     }
-    // Handle other keys
     return false;
+}
+
+static void page_flipper_timer_callback(void* context) {
+    PageFlipperApp* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, PageFlipperEventA7Press);
+}
+
+static void page_flipper_gpio_a7_callback(void* context) {
+    PageFlipperApp* app = context;
+    if(furi_timer_is_running(app->timer)) {
+        furi_timer_stop(app->timer);
+        view_dispatcher_send_custom_event(app->view_dispatcher, PageFlipperEventA7DoublePress);
+    } else {
+        furi_timer_start(app->timer, 300);
+    }
+}
+
+static void page_flipper_gpio_a6_callback(void* context) {
+    PageFlipperApp* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, PageFlipperEventA6Press);
 }
 
 PageFlipperApp* page_flipper_app_alloc() {
@@ -77,6 +166,8 @@ PageFlipperApp* page_flipper_app_alloc() {
 
     view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
+    view_dispatcher_set_custom_event_callback(app->view_dispatcher, page_flipper_custom_event_callback);
 
     app->main_view = view_alloc();
     view_allocate_model(app->main_view, ViewModelTypeLockFree, sizeof(PageFlipperModel));
@@ -94,11 +185,31 @@ PageFlipperApp* page_flipper_app_alloc() {
     app->ble_profile = bt_profile_start(app->bt, ble_profile_hid, NULL);
     bt_set_status_changed_callback(app->bt, page_flipper_bt_status_callback, app);
 
+    // Initialize Timer
+    app->timer = furi_timer_alloc(page_flipper_timer_callback, FuriTimerTypeOnce, app);
+
+    // Initialize GPIOs
+    furi_hal_gpio_init_ex(&gpio_ext_pa7, GpioModeInterruptFall, GpioPullUp, GpioSpeedLow, GpioAltFnUnused);
+    furi_hal_gpio_add_int_callback(&gpio_ext_pa7, page_flipper_gpio_a7_callback, app);
+
+    furi_hal_gpio_init_ex(&gpio_ext_pa6, GpioModeInterruptFall, GpioPullUp, GpioSpeedLow, GpioAltFnUnused);
+    furi_hal_gpio_add_int_callback(&gpio_ext_pa6, page_flipper_gpio_a6_callback, app);
+
     return app;
 }
 
 void page_flipper_app_free(PageFlipperApp* app) {
     furi_assert(app);
+
+    // Free GPIOs
+    furi_hal_gpio_remove_int_callback(&gpio_ext_pa7);
+    furi_hal_gpio_init(&gpio_ext_pa7, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
+    furi_hal_gpio_remove_int_callback(&gpio_ext_pa6);
+    furi_hal_gpio_init(&gpio_ext_pa6, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
+
+    // Free Timer
+    furi_timer_free(app->timer);
+
     bt_set_status_changed_callback(app->bt, NULL, NULL);
     bt_profile_restore_default(app->bt);
 
