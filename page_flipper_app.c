@@ -243,19 +243,18 @@ PageFlipperApp* page_flipper_app_alloc() {
     app->bt = furi_record_open(RECORD_BT);
     app->view_dispatcher = view_dispatcher_alloc();
 
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, page_flipper_custom_event_callback);
 
     app->main_view = view_alloc();
-    view_allocate_model(app->main_view, ViewModelTypeLockFree, sizeof(PageFlipperModel));
+    view_allocate_model(app->main_view, ViewModelTypeLocking, sizeof(PageFlipperModel));
     view_set_draw_callback(app->main_view, page_flipper_draw_callback);
     view_set_input_callback(app->main_view, page_flipper_input_callback);
     view_set_context(app->main_view, app);
 
     app->help_view = view_alloc();
-    view_allocate_model(app->help_view, ViewModelTypeLockFree, sizeof(HelpModel));
+    view_allocate_model(app->help_view, ViewModelTypeLocking, sizeof(HelpModel));
     view_set_draw_callback(app->help_view, page_flipper_help_draw_callback);
     view_set_input_callback(app->help_view, page_flipper_help_input_callback);
     view_set_context(app->help_view, app);
