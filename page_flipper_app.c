@@ -15,6 +15,7 @@
 
 typedef enum {
     PageFlipperViewMain,
+    PageFlipperViewHelp,
 } PageFlipperViewId;
 
 typedef enum {
@@ -30,13 +31,77 @@ typedef struct {
 } PageFlipperModel;
 
 typedef struct {
+    uint8_t page;
+} HelpModel;
+
+typedef struct {
     Gui* gui;
     ViewDispatcher* view_dispatcher;
     Bt* bt;
     View* main_view;
+    View* help_view;
     FuriHalBleProfileBase* ble_profile;
     FuriTimer* timer;
 } PageFlipperApp;
+
+static void page_flipper_help_draw_callback(Canvas* canvas, void* model) {
+    HelpModel* my_model = model;
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 64, 0, AlignCenter, AlignTop, "Help");
+
+    canvas_set_font(canvas, FontSecondary);
+    if(my_model->page == 0) {
+        canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignTop, "Foot pedal on A7:");
+        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignTop, "Single: Page Forward");
+        canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignTop, "Double: Page Backward");
+    } else if(my_model->page == 1) {
+        canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignTop, "Foot pedal on A6:");
+        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignTop, "Single: Page Backward");
+    } else if(my_model->page == 2) {
+        canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignTop, "Keypad:");
+        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignTop, "Arrows: Send keys");
+    }
+
+    // Page indicator
+    for(int i = 0; i < 3; i++) {
+        if(i == my_model->page) {
+            canvas_draw_disc(canvas, 54 + i * 10, 60, 2);
+        } else {
+            canvas_draw_circle(canvas, 54 + i * 10, 60, 2);
+        }
+    }
+
+    canvas_draw_str_aligned(canvas, 0, 64, AlignLeft, AlignBottom, "Back: Exit");
+}
+
+static bool page_flipper_help_input_callback(InputEvent* event, void* context) {
+    PageFlipperApp* app = context;
+    if(event->type == InputTypeShort) {
+        if(event->key == InputKeyBack) {
+            view_dispatcher_switch_to_view(app->view_dispatcher, PageFlipperViewMain);
+            return true;
+        } else if(event->key == InputKeyLeft) {
+            with_view_model(
+                app->help_view,
+                HelpModel * model,
+                {
+                    if(model->page > 0) model->page--;
+                },
+                true);
+            return true;
+        } else if(event->key == InputKeyRight) {
+            with_view_model(
+                app->help_view,
+                HelpModel * model,
+                {
+                    if(model->page < 2) model->page++;
+                },
+                true);
+            return true;
+        }
+    }
+    return false;
+}
 
 static void page_flipper_draw_callback(Canvas* canvas, void* model) {
     PageFlipperModel* my_model = model;
@@ -105,7 +170,7 @@ static bool page_flipper_input_callback(InputEvent* event, void* context) {
             view_dispatcher_stop(app->view_dispatcher);
             return true;
         } else if(event->key == InputKeyOk) {
-            // TODO: Help
+            view_dispatcher_switch_to_view(app->view_dispatcher, PageFlipperViewHelp);
             return true;
         } else {
             uint16_t hid_key = 0;
@@ -175,7 +240,14 @@ PageFlipperApp* page_flipper_app_alloc() {
     view_set_input_callback(app->main_view, page_flipper_input_callback);
     view_set_context(app->main_view, app);
 
+    app->help_view = view_alloc();
+    view_allocate_model(app->help_view, ViewModelTypeLockFree, sizeof(HelpModel));
+    view_set_draw_callback(app->help_view, page_flipper_help_draw_callback);
+    view_set_input_callback(app->help_view, page_flipper_help_input_callback);
+    view_set_context(app->help_view, app);
+
     view_dispatcher_add_view(app->view_dispatcher, PageFlipperViewMain, app->main_view);
+    view_dispatcher_add_view(app->view_dispatcher, PageFlipperViewHelp, app->help_view);
     view_dispatcher_switch_to_view(app->view_dispatcher, PageFlipperViewMain);
 
     // Initialize BT
@@ -214,7 +286,9 @@ void page_flipper_app_free(PageFlipperApp* app) {
     bt_profile_restore_default(app->bt);
 
     view_dispatcher_remove_view(app->view_dispatcher, PageFlipperViewMain);
+    view_dispatcher_remove_view(app->view_dispatcher, PageFlipperViewHelp);
     view_free(app->main_view);
+    view_free(app->help_view);
     view_dispatcher_free(app->view_dispatcher);
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_BT);
