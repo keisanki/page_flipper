@@ -45,6 +45,7 @@ typedef struct {
     View* help_view;
     FuriHalBleProfileBase* ble_profile;
     FuriTimer* timer;
+    BleProfileHidParams ble_params;
 } PageFlipperApp;
 
 static void page_flipper_help_draw_callback(Canvas* canvas, void* model) {
@@ -273,10 +274,9 @@ PageFlipperApp* page_flipper_app_alloc() {
     bt_disconnect(app->bt);
     furi_delay_ms(200);
     bt_keys_storage_set_default_path(app->bt);
-    BleProfileHidParams params = {
-        .device_name_prefix = "PageFlip",
-        .mac_xor = 0x0000,
-    };
+    
+    app->ble_params.device_name_prefix = "PageFl";
+    app->ble_params.mac_xor = 0x0000;
     
     if (ble_profile_hid == NULL) {
          FURI_LOG_E(TAG, "ble_profile_hid is NULL!");
@@ -289,21 +289,24 @@ PageFlipperApp* page_flipper_app_alloc() {
             true);
     } else {
          FURI_LOG_I(TAG, "Starting BLE profile...");
-         app->ble_profile = bt_profile_start(app->bt, ble_profile_hid, &params);
-         FURI_LOG_I(TAG, "BLE profile started.");
+         app->ble_profile = bt_profile_start(app->bt, ble_profile_hid, &app->ble_params);
+         FURI_LOG_I(TAG, "BLE profile started: %p", app->ble_profile);
          bt_set_status_changed_callback(app->bt, page_flipper_bt_status_callback, app);
     }
 
     // Initialize Timer
+    FURI_LOG_I(TAG, "Initializing Timer...");
     app->timer = furi_timer_alloc(page_flipper_timer_callback, FuriTimerTypeOnce, app);
 
     // Initialize GPIOs
+    FURI_LOG_I(TAG, "Initializing GPIOs...");
     furi_hal_gpio_init_ex(&gpio_ext_pa7, GpioModeInterruptFall, GpioPullUp, GpioSpeedLow, GpioAltFnUnused);
     furi_hal_gpio_add_int_callback(&gpio_ext_pa7, page_flipper_gpio_a7_callback, app);
 
     furi_hal_gpio_init_ex(&gpio_ext_pa6, GpioModeInterruptFall, GpioPullUp, GpioSpeedLow, GpioAltFnUnused);
     furi_hal_gpio_add_int_callback(&gpio_ext_pa6, page_flipper_gpio_a6_callback, app);
 
+    FURI_LOG_I(TAG, "App alloc complete.");
     return app;
 }
 
