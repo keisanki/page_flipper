@@ -132,8 +132,15 @@ static void page_flipper_draw_callback(Canvas* canvas, void* model) {
     }
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 0, 64, AlignLeft, AlignBottom, "OK: Help");
-    canvas_draw_str_aligned(canvas, 128, 64, AlignRight, AlignBottom, "Back: Exit");
+    // Draw OK "icon"
+    canvas_draw_frame(canvas, 0, 54, 14, 10);
+    canvas_draw_str(canvas, 2, 62, "OK");
+    canvas_draw_str(canvas, 16, 62, "Help");
+
+    // Draw Back "icon"
+    canvas_draw_frame(canvas, 100, 54, 27, 10);
+    canvas_draw_str(canvas, 102, 62, "Back");
+    canvas_draw_str(canvas, 80, 62, "Exit");
 }
 
 static void page_flipper_send_key(PageFlipperApp* app, uint16_t hid_key) {
@@ -167,12 +174,17 @@ static void page_flipper_bt_status_callback(BtStatus status, void* context) {
 
 static bool page_flipper_input_callback(InputEvent* event, void* context) {
     PageFlipperApp* app = context;
+    if(event->type == InputTypeLong && event->key == InputKeyBack) {
+        view_dispatcher_stop(app->view_dispatcher);
+        return true;
+    }
+
     if(event->type == InputTypeShort) {
-        if(event->key == InputKeyBack) {
-            view_dispatcher_stop(app->view_dispatcher);
-            return true;
-        } else if(event->key == InputKeyOk) {
+        if(event->key == InputKeyOk) {
             view_dispatcher_switch_to_view(app->view_dispatcher, PageFlipperViewHelp);
+            return true;
+        } else if(event->key == InputKeyBack) {
+            // Do nothing on short back press in main view
             return true;
         } else {
             uint16_t hid_key = 0;
