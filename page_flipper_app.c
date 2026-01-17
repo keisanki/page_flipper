@@ -274,13 +274,15 @@ PageFlipperApp* page_flipper_app_alloc() {
     app->timer = furi_timer_alloc(page_flipper_timer_callback, FuriTimerTypeOnce, app);
 
     // Initialize GPIOs
-    FURI_LOG_I(TAG, "Initializing GPIOs...");
-    furi_hal_gpio_init(&gpio_ext_pa7, GpioModeInterruptFall, GpioPullUp, GpioSpeedLow);
-    furi_hal_gpio_add_int_callback(&gpio_ext_pa7, page_flipper_gpio_a7_callback, app);
-
     FURI_LOG_I(TAG, "Initializing PA6...");
     furi_hal_gpio_init(&gpio_ext_pa6, GpioModeInterruptFall, GpioPullUp, GpioSpeedLow);
+    FURI_LOG_I(TAG, "Adding PA6 callback...");
     furi_hal_gpio_add_int_callback(&gpio_ext_pa6, page_flipper_gpio_a6_callback, app);
+
+    FURI_LOG_I(TAG, "Initializing PA7...");
+    furi_hal_gpio_init(&gpio_ext_pa7, GpioModeInterruptFall, GpioPullUp, GpioSpeedLow);
+    FURI_LOG_I(TAG, "Adding PA7 callback...");
+    furi_hal_gpio_add_int_callback(&gpio_ext_pa7, page_flipper_gpio_a7_callback, app);
 
     // Initialize BT
     FURI_LOG_I(TAG, "Initializing BT...");
