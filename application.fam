@@ -1,0 +1,13 @@
+App(
+    appid="page_flipper",
+    name="Page Flipper",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="page_flipper_app",
+    stack_size=2 * 1024,
+    fap_category="Bluetooth",
+    fap_version="1.0",
+    fap_description="Bluetooth remote for page flipping using foot pedals or keypad.",
+    fap_author="Florian Schaefer",
+    fap_weburl="https://github.com/keisanki/page_flipper",
+    fap_icon_assets="icons",
+)
