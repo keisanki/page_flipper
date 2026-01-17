@@ -26,6 +26,7 @@ typedef enum {
 
 typedef struct {
     bool connected;
+    bool started;
     uint16_t last_hid_key;
     uint32_t last_press_timestamp;
 } PageFlipperModel;
@@ -108,7 +109,7 @@ static void page_flipper_draw_callback(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 0, AlignCenter, AlignTop, "Page Flipper");
 
-    if(!my_model->connected) {
+    if(!my_model->started) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "Connect to PageFlipper...");
     } else {
@@ -147,6 +148,7 @@ static void page_flipper_send_key(PageFlipperApp* app, uint16_t hid_key) {
         {
             model->last_hid_key = hid_key;
             model->last_press_timestamp = furi_get_tick();
+            model->started = true;
         },
         true);
 }
@@ -254,7 +256,11 @@ PageFlipperApp* page_flipper_app_alloc() {
     bt_disconnect(app->bt);
     furi_delay_ms(200);
     bt_keys_storage_set_default_path(app->bt);
-    app->ble_profile = bt_profile_start(app->bt, ble_profile_hid, NULL);
+    BleProfileHidParams params = {
+        .device_name_prefix = "PageFlip",
+        .mac_xor = 0x0000,
+    };
+    app->ble_profile = bt_profile_start(app->bt, ble_profile_hid, &params);
     bt_set_status_changed_callback(app->bt, page_flipper_bt_status_callback, app);
 
     // Initialize Timer
