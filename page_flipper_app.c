@@ -242,7 +242,7 @@ static void page_flipper_draw_callback(Canvas* canvas, void* model) {
              canvas_draw_icon(canvas, 75, 55, &I_Pin_back_arrow_10x8);
              canvas_draw_str(canvas, 88, 62, ": Exit");
         } else {
-             canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "Disconnected");
+             canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "BLE not connected.");
         }
     }
 }
