@@ -161,7 +161,7 @@ static void page_flipper_draw_callback(Canvas* canvas, void* model) {
     canvas_draw_str_aligned(canvas, 64, 0, AlignCenter, AlignTop, "Page Flipper");
 
     uint32_t now = furi_get_tick();
-    bool flashing = (now - my_model->last_press_timestamp < 250);
+    bool flashing = (now - my_model->last_press_timestamp < 200);
     uint16_t key = flashing ? my_model->last_hid_key : 0;
 
     // Left Arrow Box
@@ -263,7 +263,7 @@ static void page_flipper_send_key(PageFlipperApp* app, uint16_t hid_key) {
         },
         true);
     
-    furi_timer_start(app->flash_timer, 250);
+    furi_timer_start(app->flash_timer, 200);
 }
 
 static void page_flipper_bt_status_callback(BtStatus status, void* context) {
