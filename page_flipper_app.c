@@ -148,38 +148,66 @@ static void page_flipper_draw_callback(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 0, AlignCenter, AlignTop, "Page Flipper");
 
-    if(!my_model->started) {
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "Connect to PageFlipper...");
-    } else {
-        uint32_t now = furi_get_tick();
-        bool flashing = (now - my_model->last_press_timestamp < 200);
-        uint16_t key = flashing ? my_model->last_hid_key : 0;
+    uint32_t now = furi_get_tick();
+    bool flashing = (now - my_model->last_press_timestamp < 200);
+    uint16_t key = flashing ? my_model->last_hid_key : 0;
 
-        // Draw arrow keys
-        if(key == HID_KEYBOARD_UP_ARROW) canvas_draw_box(canvas, 60, 20, 8, 8);
-        else canvas_draw_frame(canvas, 60, 20, 8, 8);
+    // Left Arrow Box
+    if(key == HID_KEYBOARD_LEFT_ARROW)
+        canvas_draw_rbox(canvas, 10, 18, 35, 30, 5);
+    else
+        canvas_draw_rframe(canvas, 10, 18, 35, 30, 5);
+    
+    // Right Arrow Box
+    if(key == HID_KEYBOARD_RIGHT_ARROW)
+        canvas_draw_rbox(canvas, 83, 18, 35, 30, 5);
+    else
+        canvas_draw_rframe(canvas, 83, 18, 35, 30, 5);
 
-        if(key == HID_KEYBOARD_DOWN_ARROW) canvas_draw_box(canvas, 60, 40, 8, 8);
-        else canvas_draw_frame(canvas, 60, 40, 8, 8);
+    // Up Arrow Box
+    if(key == HID_KEYBOARD_UP_ARROW)
+        canvas_draw_box(canvas, 48, 18, 32, 14);
+    else
+        canvas_draw_frame(canvas, 48, 18, 32, 14);
 
-        if(key == HID_KEYBOARD_LEFT_ARROW) canvas_draw_box(canvas, 45, 30, 8, 8);
-        else canvas_draw_frame(canvas, 45, 30, 8, 8);
+    // Down Arrow Box
+    if(key == HID_KEYBOARD_DOWN_ARROW)
+        canvas_draw_box(canvas, 48, 34, 32, 14);
+    else
+        canvas_draw_frame(canvas, 48, 34, 32, 14);
 
-        if(key == HID_KEYBOARD_RIGHT_ARROW) canvas_draw_box(canvas, 75, 30, 8, 8);
-        else canvas_draw_frame(canvas, 75, 30, 8, 8);
-    }
+    // Draw arrows using XOR to handle highlighted states
+    canvas_set_color(canvas, ColorXOR);
+    // Left
+    canvas_draw_line(canvas, 18, 33, 37, 33);
+    canvas_draw_line(canvas, 18, 33, 25, 28);
+    canvas_draw_line(canvas, 18, 33, 25, 38);
+    // Right
+    canvas_draw_line(canvas, 91, 33, 110, 33);
+    canvas_draw_line(canvas, 110, 33, 103, 28);
+    canvas_draw_line(canvas, 110, 33, 103, 38);
+    // Up
+    canvas_draw_line(canvas, 64, 21, 64, 29);
+    canvas_draw_line(canvas, 64, 21, 60, 25);
+    canvas_draw_line(canvas, 64, 21, 68, 25);
+    // Down
+    canvas_draw_line(canvas, 64, 37, 64, 45);
+    canvas_draw_line(canvas, 64, 45, 60, 41);
+    canvas_draw_line(canvas, 64, 45, 68, 41);
+    
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_line(canvas, 0, 52, 128, 52);
 
     canvas_set_font(canvas, FontSecondary);
-    // Draw OK "icon"
-    canvas_draw_frame(canvas, 0, 54, 14, 10);
-    canvas_draw_str(canvas, 2, 62, "OK");
-    canvas_draw_str(canvas, 16, 62, "Help");
-
-    // Draw Back "icon"
-    canvas_draw_frame(canvas, 100, 54, 27, 10);
-    canvas_draw_str(canvas, 102, 62, "Back");
-    canvas_draw_str(canvas, 80, 62, "Exit");
+    if(!my_model->started) {
+        canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "Connect to PageFlip...");
+    } else {
+        if (my_model->connected) {
+             canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "OK: Help  Long Back: Exit");
+        } else {
+             canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "Disconnected");
+        }
+    }
 }
 
 static void page_flipper_send_key(PageFlipperApp* app, uint16_t hid_key) {
@@ -293,7 +321,7 @@ PageFlipperApp* page_flipper_app_alloc() {
     furi_delay_ms(200);
     bt_keys_storage_set_default_path(app->bt);
     
-    app->ble_params.device_name_prefix = "PageFl";
+    app->ble_params.device_name_prefix = "PageFlip";
     app->ble_params.mac_xor = 0x0000;
     
     if (ble_profile_hid != NULL) {
