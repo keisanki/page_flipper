@@ -116,9 +116,9 @@ static void page_flipper_help_draw_callback(Canvas* canvas, void* model) {
     // Page indicator
     for(int i = 0; i < 3; i++) {
         if(i == my_model->page) {
-            canvas_draw_disc(canvas, 54 + i * 10, 60, 2);
+            canvas_draw_disc(canvas, 54 + i * 10, 58, 2);
         } else {
-            canvas_draw_circle(canvas, 54 + i * 10, 60, 2);
+            canvas_draw_circle(canvas, 54 + i * 10, 58, 2);
         }
     }
 
