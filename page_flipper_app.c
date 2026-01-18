@@ -228,7 +228,7 @@ static void page_flipper_timer_callback(void* context) {
     view_dispatcher_send_custom_event(app->view_dispatcher, PageFlipperEventA7Press);
 }
 
-static void page_flipper_gpio_a7_callback(void* context) {
+void page_flipper_gpio_a7_callback(void* context) {
     PageFlipperApp* app = context;
     if(furi_timer_is_running(app->timer)) {
         furi_timer_stop(app->timer);
@@ -238,8 +238,9 @@ static void page_flipper_gpio_a7_callback(void* context) {
     }
 }
 
-static void page_flipper_gpio_a6_callback(void* context) {
+void page_flipper_gpio_a6_callback(void* context) {
     PageFlipperApp* app = context;
+    UNUSED(app);
     view_dispatcher_send_custom_event(app->view_dispatcher, PageFlipperEventA6Press);
 }
 
@@ -274,15 +275,15 @@ PageFlipperApp* page_flipper_app_alloc() {
     app->timer = furi_timer_alloc(page_flipper_timer_callback, FuriTimerTypeOnce, app);
 
     // Initialize GPIOs
-    FURI_LOG_I(TAG, "Initializing PA6...");
-    furi_hal_gpio_init(&gpio_ext_pa6, GpioModeInterruptFall, GpioPullUp, GpioSpeedLow);
-    FURI_LOG_I(TAG, "Adding PA6 callback...");
-    furi_hal_gpio_add_int_callback(&gpio_ext_pa6, page_flipper_gpio_a6_callback, app);
+    FURI_LOG_I(TAG, "Initializing PA6 (Input)...");
+    furi_hal_gpio_init(&gpio_ext_pa6, GpioModeInput, GpioPullUp, GpioSpeedLow);
+    // FURI_LOG_I(TAG, "Adding PA6 callback...");
+    // furi_hal_gpio_add_int_callback(&gpio_ext_pa6, page_flipper_gpio_a6_callback, app);
 
-    FURI_LOG_I(TAG, "Initializing PA7...");
-    furi_hal_gpio_init(&gpio_ext_pa7, GpioModeInterruptFall, GpioPullUp, GpioSpeedLow);
-    FURI_LOG_I(TAG, "Adding PA7 callback...");
-    furi_hal_gpio_add_int_callback(&gpio_ext_pa7, page_flipper_gpio_a7_callback, app);
+    FURI_LOG_I(TAG, "Initializing PA7 (Input)...");
+    furi_hal_gpio_init(&gpio_ext_pa7, GpioModeInput, GpioPullUp, GpioSpeedLow);
+    // FURI_LOG_I(TAG, "Adding PA7 callback...");
+    // furi_hal_gpio_add_int_callback(&gpio_ext_pa7, page_flipper_gpio_a7_callback, app);
 
     // Initialize BT
     FURI_LOG_I(TAG, "Initializing BT...");
