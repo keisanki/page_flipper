@@ -71,6 +71,8 @@ ufbt launch
     *   `page_flipper_app.c`: Main source file with documented functions and polling logic.
     *   `icons/`: Directory for graphical assets (`Ok_btn_9x9.png`, `Pin_back_arrow_10x8.png`).
     *   `page_flipper.png`: 10x10 application icon.
+*   **Documentation:**
+    *   Each function must have a descriptive comment at its beginning explaining its purpose, arguments, and return value.
 *   **Concurrency:**
     *   A background thread (`page_flipper_worker`) polls GPIO pins PA6 and PA7 every 10ms to ensure stability and avoid interrupt-related hangs on shared pins.
     *   A single-shot `flash_timer` (200ms) handles the UI feedback for keypresses.
