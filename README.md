@@ -2,6 +2,8 @@
 
 Page Flipper is a Bluetooth remote control application for the Flipper Zero. It emulates a HID (Human Interface Device) keyboard, allowing you to control presentations, e-readers (like Kindle or tablet apps), or media players using external foot pedals or the device's own keypad.
 
+The primary purpose of this app is to provide control for sheet music apps on tablet computers, where a foot pedal can be used to flip to the next or previous music page, allowing musicians to keep their hands on their instruments.
+
 ![Main Screen](Screenshots/Screenshot-Main.png)
 
 ## Features
@@ -63,3 +65,6 @@ Press the **OK** button at any time to access the built-in help pages, which pro
    ```bash
    ufbt launch
    ```
+
+---
+*This app has been developed with the help of the Gemini CLI AI.*
