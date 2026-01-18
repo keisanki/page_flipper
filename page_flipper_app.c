@@ -98,16 +98,20 @@ static void page_flipper_help_draw_callback(Canvas* canvas, void* model) {
 
     canvas_set_font(canvas, FontSecondary);
     if(my_model->page == 0) {
-        canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignTop, "Foot pedal on A7:");
-        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignTop, "Single: Page Forward");
-        canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignTop, "Double: Page Backward");
+        canvas_draw_str_aligned(canvas, 64, 15, AlignCenter, AlignTop, "Foot pedal on A7:");
+        canvas_draw_str_aligned(canvas, 64, 27, AlignCenter, AlignTop, "Single: Page Forward");
+        canvas_draw_str_aligned(canvas, 64, 39, AlignCenter, AlignTop, "Double: Page Backward");
     } else if(my_model->page == 1) {
-        canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignTop, "Foot pedal on A6:");
-        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignTop, "Single: Page Backward");
+        canvas_draw_str_aligned(canvas, 64, 15, AlignCenter, AlignTop, "Foot pedal on A6:");
+        canvas_draw_str_aligned(canvas, 64, 27, AlignCenter, AlignTop, "Single: Page Backward");
     } else if(my_model->page == 2) {
-        canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignTop, "Keypad:");
-        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignTop, "Arrows: Send keys");
+        canvas_draw_str_aligned(canvas, 64, 15, AlignCenter, AlignTop, "Keypad:");
+        canvas_draw_str_aligned(canvas, 64, 27, AlignCenter, AlignTop, "Arrows: Send keys");
     }
+
+    // Separator line
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_line(canvas, 0, 52, 128, 52);
 
     // Page indicator
     for(int i = 0; i < 3; i++) {
