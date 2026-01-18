@@ -2,82 +2,76 @@
 
 ## 1. Project Overview
 
-This project contains the source code for "Page Flipper," a Flipper Zero application that turns the device into a Bluetooth remote control. It is designed to control presentations, e-readers, or media players by sending keyboard arrow key presses.
+This project contains the source code for "Page Flipper," a Flipper Zero application that turns the device into a Bluetooth remote control. It is designed to control presentations, e-readers, or media players by sending keyboard arrow and home key presses.
 
-The application is written in C and uses the Flipper Zero SDK (`furi`). It leverages the device's built-in Bluetooth Low Energy (BLE) capabilities to emulate a Human Interface Device (HID) keyboard. The core functionality is driven by GPIO interrupts, allowing for control via one or two external momentary switches.
+The application is written in C and uses the Flipper Zero SDK (`furi`). It leverages the device's built-in Bluetooth Low Energy (BLE) capabilities to emulate a Human Interface Device (HID) keyboard. The core functionality is driven by a background polling thread for GPIO stability, allowing for control via one or two external momentary switches connected to Ground.
 
 ### Functionality
-*   The App advertises itself as PageFlipper via BLE.
-*   A foot pedal switch is connected betwen GPIO A7 and GND. The following logic is implemented:
-    *   A single click sends a right arrow key via the BLE HID.
-    *   A double click sends a left arrow key via the BLE HID.
-*   Optionally a second foot pedal switch is connected between GPIO A6 and GNC. The following logic is implemented:
-    *   A single click sends a left arrow key via the BLE HID.
-*   Clicking one of the Flipper Zero keypad keys sends the corresponding cursor key via BLE HID.
-*   Clicking OK opens a set of help pages.
-*   A long press of the Back button exits the application.
+*   The App advertises itself as **PageFlip** via BLE.
+*   A foot pedal switch is connected between GPIO **A7 and GND**. The following logic is implemented:
+    *   A single click sends a **Right Arrow** key via BLE HID.
+    *   A double click sends a **Left Arrow** key via BLE HID.
+*   Optionally, a second foot pedal switch is connected between GPIO **A6 and GND**. The following logic is implemented:
+    *   A single click sends a **Left Arrow** key via BLE HID.
+    *   A double click sends a **Home** key (First Page) via BLE HID.
+*   Clicking one of the Flipper Zero keypad arrow keys sends the corresponding cursor key via BLE HID.
+*   Clicking **OK** opens a set of help pages.
+*   A **short press** of the **Back** button exits the application.
 
 ### GUI
-*   The application icon is a symbolized page with an arrow pointing to the right.
-*   The screen starts with a title line that states the application title.
-*   After the app starts the center of the screen states "Connect to PageFlipper..." until the first event is received and the app switches to its normal operation scren (see next point).
-*   In normal operation, below the title are four symbolized arrow keys: Big left and right keys with in-between vertically stacked up and down keys.
-*   When a key event is emitted the corresponding key icon flashes for a short time.
-*   The bottom the screen shows further instructions ('OK' and 'Back' are implemented as icons).
-    *   OK: Help
-    *   Back: Exit
-*   The help screen
-    *   It has three pages that are navigates using the keypay left-right buttons.
-    *   The Back button exists the help screen
-    *   Help screen pages
-        1. One foot pedal connected to A7: single press -> page forward, double press -> page backward
-        2. Optionally one foot pedal connected to A6: single press -> page backward
-        3. Keypad: corresponding key event is sent
+*   **App Icon:** A 10x10 pixel symbol of a page with a small arrow pointing right.
+*   **Main Screen:**
+    *   Title line: "Page Flipper".
+    *   Control Area: Four symbolized arrow keys with 2px thick lines. Left and Right are in large rounded frames; Up and Down are in smaller stacked rounded frames.
+    *   Feedback: When a key event is emitted, the corresponding box is inverted for **200ms**.
+    *   Separator: A horizontal line at `y=52` separates the control area from the info area.
+    *   Info Area: 
+        *   Displays "Connect to PageFlip..." until a connection is established.
+        *   Displays "BLE not connected." if the connection is lost.
+        *   Once connected, shows button icons for OK (Help) and Back (Exit).
+*   **Help Screen:**
+    *   Three pages navigated using the keypad Left/Right buttons.
+    *   Consistent layout with the main screen (moved text up, horizontal separator line).
+    *   Page indicator dots at the bottom, aligned with the "Exit" icon.
+    *   Help pages:
+        1. Foot pedal (A7 to GND): Single -> Forward, Double -> Backward.
+        2. Foot pedal (A6 to GND): Single -> Backward, Double -> Home.
+        3. Keypad: Arrow keys send corresponding HID keys.
 
 ### Key Technologies & Concepts:
 *   **Language:** C
 *   **Platform:** Flipper Zero
-*   **Core APIs:** Flipper Zero SDK (`furi`, `furi_hal`, `gui`, `bt`)
-*   **Functionality:** Bluetooth HID, GPIO interrupt handling, basic GUI.
+*   **Core APIs:** Furi, FuriHal (GPIO, BT, Timer, Thread), GUI (View Dispatcher, View, Canvas).
+*   **Functionality:** Bluetooth HID Keyboard, GPIO polling (10ms interval), UI Feedback Timer.
+*   **Stack Size:** 4096 bytes.
 
-Progress of the Application is tracked in a local git repository. The functionality of the application is created one-by-one, after each step proper compilation and installation is verified. Upon verification a git commit is created.
-
-The app stack size is 2048 bytes.
+Progress is tracked in a local git repository.
 
 ## 2. Building and Running
 
-The application is intended to be compiled as an external Flipper Application (`.fap`).
+The application is compiled as an external Flipper Application (`.fap`).
 
 ### Prerequisites
-*   A working Flipper Zero development environment.
-*   The `page_flipper` directory must be placed inside the `applications_user` folder of the Flipper Zero firmware source tree.
+*   A working Flipper Zero development environment (`ufbt`).
 
 ### Build Command
-To compile the application, run the Flipper Build Tool (`ufbt`) from the root of the firmware directory:
 ```bash
-./ufbt
+ufbt
 ```
 
 ### Deployment Command
-To build, deploy, and launch the application on a connected Flipper Zero:
 ```bash
-./ufbt launch
+ufbt launch
 ```
 
 ## 3. Development Conventions
 
-*   **File Structure:** The project is self-contained within the `page_flipper` directory.
-    *   `application.fam`: Application manifest file defining metadata and dependencies.
-    *   `page_flipper_app.c`: Main source file containing all application logic.
-    *   `icons`: Directory to store all graphics.
-    *   `README.md`: Project documentation.
-    *   `GEMINI.md`: Instructions for Gemini.
-*   **Naming Conventions:**
-    *   Functions and variables use `snake_case` with a `page_flipper_` prefix for top-level symbols (e.g., `page_flipper_app_alloc`).
-    *   Types use `PascalCase` with an `App` suffix for the main struct (e.g., `PageFlipperApp`).
-    *   Constants are in `UPPER_SNAKE_CASE` (e.g., `SWITCH_PIN_RIGHT`).
-*   **Control Flow:** The application is event-driven.
-    *   The main loop is managed by `view_dispatcher_run`.
-    *   GPIO events are handled asynchronously via hardware interrupt callbacks (`page_flipper_interrupt_callback_right`, `page_flipper_interrupt_callback_left`).
-    *   A software timer (`FuriTimer`) is used to distinguish between single and double presses.
-*   **Exiting:** The application is exited by pressing the physical "Back" button on the Flipper Zero.
+*   **File Structure:**
+    *   `application.fam`: Manifest file defining metadata, `ble_profile` library dependency, and 4KB stack.
+    *   `page_flipper_app.c`: Main source file with documented functions and polling logic.
+    *   `icons/`: Directory for graphical assets (`Ok_btn_9x9.png`, `Pin_back_arrow_10x8.png`).
+    *   `page_flipper.png`: 10x10 application icon.
+*   **Concurrency:**
+    *   A background thread (`page_flipper_worker`) polls GPIO pins PA6 and PA7 every 10ms to ensure stability and avoid interrupt-related hangs on shared pins.
+    *   A single-shot `flash_timer` (200ms) handles the UI feedback for keypresses.
+*   **Cleanup:** Proper de-initialization of GPIO pins (reset to Analog), Bluetooth (restore default profile), and background threads is performed in `page_flipper_app_free`.
