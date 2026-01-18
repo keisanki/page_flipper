@@ -230,7 +230,7 @@ static void page_flipper_draw_callback(Canvas* canvas, void* model) {
         canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "Connect to PageFlip...");
     } else {
         if (my_model->connected) {
-             canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "OK: Help  Long Back: Exit");
+             canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "OK: Help  Back: Exit");
         } else {
              canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "Disconnected");
         }
@@ -270,17 +270,13 @@ static void page_flipper_bt_status_callback(BtStatus status, void* context) {
 
 static bool page_flipper_input_callback(InputEvent* event, void* context) {
     PageFlipperApp* app = context;
-    if(event->type == InputTypeLong && event->key == InputKeyBack) {
-        view_dispatcher_stop(app->view_dispatcher);
-        return true;
-    }
 
     if(event->type == InputTypeShort) {
         if(event->key == InputKeyOk) {
             view_dispatcher_switch_to_view(app->view_dispatcher, PageFlipperViewHelp);
             return true;
         } else if(event->key == InputKeyBack) {
-            // Do nothing on short back press in main view
+            view_dispatcher_stop(app->view_dispatcher);
             return true;
         } else {
             uint16_t hid_key = 0;
