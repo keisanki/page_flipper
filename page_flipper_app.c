@@ -48,7 +48,13 @@ typedef struct {
     BleProfileHidParams ble_params;
     FuriThread* worker_thread;
     bool running;
+    FuriTimer* flash_timer;
 } PageFlipperApp;
+
+static void page_flipper_flash_timer_callback(void* context) {
+    PageFlipperApp* app = context;
+    with_view_model(app->main_view, PageFlipperModel * model, { UNUSED(model); }, true);
+}
 
 static int32_t page_flipper_worker(void* context) {
     PageFlipperApp* app = context;
@@ -149,50 +155,71 @@ static void page_flipper_draw_callback(Canvas* canvas, void* model) {
     canvas_draw_str_aligned(canvas, 64, 0, AlignCenter, AlignTop, "Page Flipper");
 
     uint32_t now = furi_get_tick();
-    bool flashing = (now - my_model->last_press_timestamp < 200);
+    bool flashing = (now - my_model->last_press_timestamp < 500);
     uint16_t key = flashing ? my_model->last_hid_key : 0;
 
     // Left Arrow Box
-    if(key == HID_KEYBOARD_LEFT_ARROW)
+    canvas_set_color(canvas, ColorBlack);
+    if(key == HID_KEYBOARD_LEFT_ARROW) {
         canvas_draw_rbox(canvas, 10, 18, 35, 30, 5);
-    else
+        canvas_set_color(canvas, ColorWhite);
+    } else {
         canvas_draw_rframe(canvas, 10, 18, 35, 30, 5);
+    }
+    // Draw Left Arrow
+    canvas_draw_line(canvas, 18, 32, 37, 32);
+    canvas_draw_line(canvas, 18, 33, 37, 33);
+    canvas_draw_line(canvas, 18, 32, 25, 27);
+    canvas_draw_line(canvas, 18, 33, 25, 28);
+    canvas_draw_line(canvas, 18, 32, 25, 37);
+    canvas_draw_line(canvas, 18, 33, 25, 38);
     
     // Right Arrow Box
-    if(key == HID_KEYBOARD_RIGHT_ARROW)
+    canvas_set_color(canvas, ColorBlack);
+    if(key == HID_KEYBOARD_RIGHT_ARROW) {
         canvas_draw_rbox(canvas, 83, 18, 35, 30, 5);
-    else
+        canvas_set_color(canvas, ColorWhite);
+    } else {
         canvas_draw_rframe(canvas, 83, 18, 35, 30, 5);
+    }
+    // Draw Right Arrow
+    canvas_draw_line(canvas, 91, 32, 110, 32);
+    canvas_draw_line(canvas, 91, 33, 110, 33);
+    canvas_draw_line(canvas, 110, 32, 103, 27);
+    canvas_draw_line(canvas, 110, 33, 103, 28);
+    canvas_draw_line(canvas, 110, 32, 103, 37);
+    canvas_draw_line(canvas, 110, 33, 103, 38);
 
     // Up Arrow Box
-    if(key == HID_KEYBOARD_UP_ARROW)
-        canvas_draw_box(canvas, 48, 18, 32, 14);
-    else
-        canvas_draw_frame(canvas, 48, 18, 32, 14);
+    canvas_set_color(canvas, ColorBlack);
+    if(key == HID_KEYBOARD_UP_ARROW) {
+        canvas_draw_rbox(canvas, 48, 18, 32, 14, 3);
+        canvas_set_color(canvas, ColorWhite);
+    } else {
+        canvas_draw_rframe(canvas, 48, 18, 32, 14, 3);
+    }
+    // Draw Up Arrow
+    canvas_draw_line(canvas, 63, 21, 63, 29);
+    canvas_draw_line(canvas, 64, 21, 64, 29);
+    canvas_draw_line(canvas, 63, 21, 59, 25);
+    canvas_draw_line(canvas, 64, 21, 60, 25);
+    canvas_draw_line(canvas, 63, 21, 67, 25);
+    canvas_draw_line(canvas, 64, 21, 68, 25);
 
     // Down Arrow Box
-    if(key == HID_KEYBOARD_DOWN_ARROW)
-        canvas_draw_box(canvas, 48, 34, 32, 14);
-    else
-        canvas_draw_frame(canvas, 48, 34, 32, 14);
-
-    // Draw arrows using XOR to handle highlighted states
-    canvas_set_color(canvas, ColorXOR);
-    // Left
-    canvas_draw_line(canvas, 18, 33, 37, 33);
-    canvas_draw_line(canvas, 18, 33, 25, 28);
-    canvas_draw_line(canvas, 18, 33, 25, 38);
-    // Right
-    canvas_draw_line(canvas, 91, 33, 110, 33);
-    canvas_draw_line(canvas, 110, 33, 103, 28);
-    canvas_draw_line(canvas, 110, 33, 103, 38);
-    // Up
-    canvas_draw_line(canvas, 64, 21, 64, 29);
-    canvas_draw_line(canvas, 64, 21, 60, 25);
-    canvas_draw_line(canvas, 64, 21, 68, 25);
-    // Down
+    canvas_set_color(canvas, ColorBlack);
+    if(key == HID_KEYBOARD_DOWN_ARROW) {
+        canvas_draw_rbox(canvas, 48, 34, 32, 14, 3);
+        canvas_set_color(canvas, ColorWhite);
+    } else {
+        canvas_draw_rframe(canvas, 48, 34, 32, 14, 3);
+    }
+    // Draw Down Arrow
+    canvas_draw_line(canvas, 63, 37, 63, 45);
     canvas_draw_line(canvas, 64, 37, 64, 45);
+    canvas_draw_line(canvas, 63, 45, 59, 41);
     canvas_draw_line(canvas, 64, 45, 60, 41);
+    canvas_draw_line(canvas, 63, 45, 67, 41);
     canvas_draw_line(canvas, 64, 45, 68, 41);
     
     canvas_set_color(canvas, ColorBlack);
@@ -225,6 +252,8 @@ static void page_flipper_send_key(PageFlipperApp* app, uint16_t hid_key) {
             model->started = true;
         },
         true);
+    
+    furi_timer_start(app->flash_timer, 500);
 }
 
 static void page_flipper_bt_status_callback(BtStatus status, void* context) {
@@ -335,11 +364,17 @@ PageFlipperApp* page_flipper_app_alloc() {
     app->worker_thread = furi_thread_alloc_ex("PageFlipperWorker", 1024, page_flipper_worker, app);
     furi_thread_start(app->worker_thread);
 
+    // Initialize flash timer
+    app->flash_timer = furi_timer_alloc(page_flipper_flash_timer_callback, FuriTimerTypeOnce, app);
+
     return app;
 }
 
 void page_flipper_app_free(PageFlipperApp* app) {
     furi_assert(app);
+
+    furi_timer_stop(app->flash_timer);
+    furi_timer_free(app->flash_timer);
 
     app->running = false;
     furi_thread_join(app->worker_thread);
