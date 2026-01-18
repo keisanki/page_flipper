@@ -98,11 +98,11 @@ static void page_flipper_help_draw_callback(Canvas* canvas, void* model) {
 
     canvas_set_font(canvas, FontSecondary);
     if(my_model->page == 0) {
-        canvas_draw_str_aligned(canvas, 64, 15, AlignCenter, AlignTop, "Foot pedal on A7:");
+        canvas_draw_str_aligned(canvas, 64, 15, AlignCenter, AlignTop, "Foot pedal (A7 to GND):");
         canvas_draw_str_aligned(canvas, 64, 27, AlignCenter, AlignTop, "Single: Page Forward");
         canvas_draw_str_aligned(canvas, 64, 39, AlignCenter, AlignTop, "Double: Page Backward");
     } else if(my_model->page == 1) {
-        canvas_draw_str_aligned(canvas, 64, 15, AlignCenter, AlignTop, "Foot pedal on A6:");
+        canvas_draw_str_aligned(canvas, 64, 15, AlignCenter, AlignTop, "Foot pedal (A6 to GND):");
         canvas_draw_str_aligned(canvas, 64, 27, AlignCenter, AlignTop, "Single: Page Backward");
     } else if(my_model->page == 2) {
         canvas_draw_str_aligned(canvas, 64, 15, AlignCenter, AlignTop, "Keypad:");
