@@ -16,6 +16,7 @@
 #define HID_KEYBOARD_DOWN_ARROW 0x51
 #define HID_KEYBOARD_LEFT_ARROW 0x50
 #define HID_KEYBOARD_RIGHT_ARROW 0x4F
+#define HID_KEYBOARD_HOME 0x4A
 
 typedef enum {
     PageFlipperViewMain,
@@ -26,6 +27,7 @@ typedef enum {
     PageFlipperEventA7Press,
     PageFlipperEventA7DoublePress,
     PageFlipperEventA6Press,
+    PageFlipperEventA6DoublePress,
 } PageFlipperCustomEvent;
 
 typedef struct {
@@ -61,16 +63,28 @@ static int32_t page_flipper_worker(void* context) {
     PageFlipperApp* app = context;
     bool last_pa6 = true;
     bool last_pa7 = true;
+    uint32_t last_pa6_press = 0;
     uint32_t last_pa7_press = 0;
 
     while(app->running) {
         bool pa6 = furi_hal_gpio_read(&gpio_ext_pa6);
         bool pa7 = furi_hal_gpio_read(&gpio_ext_pa7);
 
+        // PA6 detection
         if(!pa6 && last_pa6) {
-            view_dispatcher_send_custom_event(app->view_dispatcher, PageFlipperEventA6Press);
+            uint32_t now = furi_get_tick();
+            if(now - last_pa6_press < 300) {
+                view_dispatcher_send_custom_event(app->view_dispatcher, PageFlipperEventA6DoublePress);
+                last_pa6_press = 0;
+            } else {
+                last_pa6_press = now;
+            }
+        } else if (last_pa6_press != 0 && furi_get_tick() - last_pa6_press > 300) {
+             view_dispatcher_send_custom_event(app->view_dispatcher, PageFlipperEventA6Press);
+             last_pa6_press = 0;
         }
 
+        // PA7 detection
         if(!pa7 && last_pa7) {
             uint32_t now = furi_get_tick();
             if(now - last_pa7_press < 300) {
@@ -104,6 +118,7 @@ static void page_flipper_help_draw_callback(Canvas* canvas, void* model) {
     } else if(my_model->page == 1) {
         canvas_draw_str_aligned(canvas, 64, 15, AlignCenter, AlignTop, "Foot pedal (A6 to GND):");
         canvas_draw_str_aligned(canvas, 64, 27, AlignCenter, AlignTop, "Single: Page Backward");
+        canvas_draw_str_aligned(canvas, 64, 39, AlignCenter, AlignTop, "Double: First Page (Home)");
     } else if(my_model->page == 2) {
         canvas_draw_str_aligned(canvas, 64, 15, AlignCenter, AlignTop, "Keypad:");
         canvas_draw_str_aligned(canvas, 64, 27, AlignCenter, AlignTop, "Arrows: Send keys");
@@ -315,6 +330,9 @@ static bool page_flipper_custom_event_callback(void* context, uint32_t event) {
         return true;
     } else if(event == PageFlipperEventA6Press) {
         page_flipper_send_key(app, HID_KEYBOARD_LEFT_ARROW);
+        return true;
+    } else if(event == PageFlipperEventA6DoublePress) {
+        page_flipper_send_key(app, HID_KEYBOARD_HOME);
         return true;
     }
     return false;
