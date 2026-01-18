@@ -6,6 +6,8 @@
 #include <bt/bt_service/bt.h>
 #include <extra_profiles/hid_profile.h>
 #include <string.h>
+#include <furi_hal_gpio.h>
+#include <furi_hal_resources.h>
 
 #define TAG "PageFlipper"
 
@@ -28,7 +30,6 @@ typedef enum {
 typedef struct {
     bool connected;
     bool started;
-    char status_text[32];
     uint16_t last_hid_key;
     uint32_t last_press_timestamp;
 } PageFlipperModel;
@@ -44,9 +45,44 @@ typedef struct {
     View* main_view;
     View* help_view;
     FuriHalBleProfileBase* ble_profile;
-    FuriTimer* timer;
     BleProfileHidParams ble_params;
+    FuriThread* worker_thread;
+    bool running;
 } PageFlipperApp;
+
+static int32_t page_flipper_worker(void* context) {
+    PageFlipperApp* app = context;
+    bool last_pa6 = true;
+    bool last_pa7 = true;
+    uint32_t last_pa7_press = 0;
+
+    while(app->running) {
+        bool pa6 = furi_hal_gpio_read(&gpio_ext_pa6);
+        bool pa7 = furi_hal_gpio_read(&gpio_ext_pa7);
+
+        if(!pa6 && last_pa6) {
+            view_dispatcher_send_custom_event(app->view_dispatcher, PageFlipperEventA6Press);
+        }
+
+        if(!pa7 && last_pa7) {
+            uint32_t now = furi_get_tick();
+            if(now - last_pa7_press < 300) {
+                view_dispatcher_send_custom_event(app->view_dispatcher, PageFlipperEventA7DoublePress);
+                last_pa7_press = 0;
+            } else {
+                last_pa7_press = now;
+            }
+        } else if (last_pa7_press != 0 && furi_get_tick() - last_pa7_press > 300) {
+             view_dispatcher_send_custom_event(app->view_dispatcher, PageFlipperEventA7Press);
+             last_pa7_press = 0;
+        }
+
+        last_pa6 = pa6;
+        last_pa7 = pa7;
+        furi_delay_ms(10);
+    }
+    return 0;
+}
 
 static void page_flipper_help_draw_callback(Canvas* canvas, void* model) {
     HelpModel* my_model = model;
@@ -112,10 +148,7 @@ static void page_flipper_draw_callback(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 0, AlignCenter, AlignTop, "Page Flipper");
 
-    if(my_model->status_text[0] != '\0') {
-         canvas_set_font(canvas, FontSecondary);
-         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, my_model->status_text);
-    } else if(!my_model->started) {
+    if(!my_model->started) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "Connect to PageFlipper...");
     } else {
@@ -223,29 +256,14 @@ static bool page_flipper_custom_event_callback(void* context, uint32_t event) {
     return false;
 }
 
-static void page_flipper_timer_callback(void* context) {
-    PageFlipperApp* app = context;
-    view_dispatcher_send_custom_event(app->view_dispatcher, PageFlipperEventA7Press);
-}
-
-void page_flipper_gpio_a7_callback(void* context) {
-    PageFlipperApp* app = context;
-    if(furi_timer_is_running(app->timer)) {
-        furi_timer_stop(app->timer);
-        view_dispatcher_send_custom_event(app->view_dispatcher, PageFlipperEventA7DoublePress);
-    } else {
-        furi_timer_start(app->timer, 300);
-    }
-}
-
-void page_flipper_gpio_a6_callback(void* context) {
-    PageFlipperApp* app = context;
-    UNUSED(app);
-    view_dispatcher_send_custom_event(app->view_dispatcher, PageFlipperEventA6Press);
-}
-
 PageFlipperApp* page_flipper_app_alloc() {
     PageFlipperApp* app = malloc(sizeof(PageFlipperApp));
+    memset(app, 0, sizeof(PageFlipperApp));
+
+    // Initialize GPIOs as Input (No interrupts)
+    furi_hal_gpio_init(&gpio_ext_pa6, GpioModeInput, GpioPullUp, GpioSpeedLow);
+    furi_hal_gpio_init(&gpio_ext_pa7, GpioModeInput, GpioPullUp, GpioSpeedLow);
+
     app->gui = furi_record_open(RECORD_GUI);
     app->bt = furi_record_open(RECORD_BT);
     app->view_dispatcher = view_dispatcher_alloc();
@@ -270,23 +288,7 @@ PageFlipperApp* page_flipper_app_alloc() {
     view_dispatcher_add_view(app->view_dispatcher, PageFlipperViewHelp, app->help_view);
     view_dispatcher_switch_to_view(app->view_dispatcher, PageFlipperViewMain);
 
-    // Initialize Timer
-    FURI_LOG_I(TAG, "Initializing Timer...");
-    app->timer = furi_timer_alloc(page_flipper_timer_callback, FuriTimerTypeOnce, app);
-
-    // Initialize GPIOs
-    FURI_LOG_I(TAG, "Initializing PA6 (Input)...");
-    furi_hal_gpio_init(&gpio_ext_pa6, GpioModeInput, GpioPullUp, GpioSpeedLow);
-    // FURI_LOG_I(TAG, "Adding PA6 callback...");
-    // furi_hal_gpio_add_int_callback(&gpio_ext_pa6, page_flipper_gpio_a6_callback, app);
-
-    FURI_LOG_I(TAG, "Initializing PA7 (Input)...");
-    furi_hal_gpio_init(&gpio_ext_pa7, GpioModeInput, GpioPullUp, GpioSpeedLow);
-    // FURI_LOG_I(TAG, "Adding PA7 callback...");
-    // furi_hal_gpio_add_int_callback(&gpio_ext_pa7, page_flipper_gpio_a7_callback, app);
-
     // Initialize BT
-    FURI_LOG_I(TAG, "Initializing BT...");
     bt_disconnect(app->bt);
     furi_delay_ms(200);
     bt_keys_storage_set_default_path(app->bt);
@@ -294,38 +296,26 @@ PageFlipperApp* page_flipper_app_alloc() {
     app->ble_params.device_name_prefix = "PageFl";
     app->ble_params.mac_xor = 0x0000;
     
-    if (ble_profile_hid == NULL) {
-         FURI_LOG_E(TAG, "ble_profile_hid is NULL!");
-         with_view_model(
-            app->main_view,
-            PageFlipperModel * model,
-            {
-                strncpy(model->status_text, "Error: HID Profile NULL", sizeof(model->status_text));
-            },
-            true);
-    } else {
-         FURI_LOG_I(TAG, "Starting BLE profile...");
+    if (ble_profile_hid != NULL) {
          app->ble_profile = bt_profile_start(app->bt, ble_profile_hid, &app->ble_params);
-         FURI_LOG_I(TAG, "BLE profile started: %p", app->ble_profile);
-         furi_delay_ms(500); // Give it time to settle
+         furi_delay_ms(500); 
          bt_set_status_changed_callback(app->bt, page_flipper_bt_status_callback, app);
     }
 
-    FURI_LOG_I(TAG, "App alloc complete.");
+    // Start worker thread
+    app->running = true;
+    app->worker_thread = furi_thread_alloc_ex("PageFlipperWorker", 1024, page_flipper_worker, app);
+    furi_thread_start(app->worker_thread);
+
     return app;
 }
 
 void page_flipper_app_free(PageFlipperApp* app) {
     furi_assert(app);
 
-    // Free GPIOs
-    furi_hal_gpio_remove_int_callback(&gpio_ext_pa7);
-    furi_hal_gpio_init(&gpio_ext_pa7, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
-    furi_hal_gpio_remove_int_callback(&gpio_ext_pa6);
-    furi_hal_gpio_init(&gpio_ext_pa6, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
-
-    // Free Timer
-    furi_timer_free(app->timer);
+    app->running = false;
+    furi_thread_join(app->worker_thread);
+    furi_thread_free(app->worker_thread);
 
     bt_set_status_changed_callback(app->bt, NULL, NULL);
     bt_profile_restore_default(app->bt);
@@ -337,17 +327,17 @@ void page_flipper_app_free(PageFlipperApp* app) {
     view_dispatcher_free(app->view_dispatcher);
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_BT);
+
+    furi_hal_gpio_init(&gpio_ext_pa6, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
+    furi_hal_gpio_init(&gpio_ext_pa7, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
+
     free(app);
 }
 
 int32_t page_flipper_app(void* p) {
     UNUSED(p);
     PageFlipperApp* app = page_flipper_app_alloc();
-
-    FURI_LOG_I(TAG, "Page Flipper started");
-
     view_dispatcher_run(app->view_dispatcher);
-
     page_flipper_app_free(app);
     return 0;
 }
