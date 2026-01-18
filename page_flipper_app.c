@@ -8,6 +8,7 @@
 #include <string.h>
 #include <furi_hal_gpio.h>
 #include <furi_hal_resources.h>
+#include <page_flipper_icons.h>
 
 #define TAG "PageFlipper"
 
@@ -117,7 +118,8 @@ static void page_flipper_help_draw_callback(Canvas* canvas, void* model) {
         }
     }
 
-    canvas_draw_str_aligned(canvas, 0, 64, AlignLeft, AlignBottom, "Back: Exit");
+    canvas_draw_icon(canvas, 0, 55, &I_Pin_back_arrow_10x8);
+    canvas_draw_str(canvas, 13, 62, ": Exit");
 }
 
 static bool page_flipper_help_input_callback(InputEvent* event, void* context) {
@@ -230,7 +232,11 @@ static void page_flipper_draw_callback(Canvas* canvas, void* model) {
         canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "Connect to PageFlip...");
     } else {
         if (my_model->connected) {
-             canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "OK: Help  Back: Exit");
+             canvas_draw_icon(canvas, 15, 54, &I_Ok_btn_9x9);
+             canvas_draw_str(canvas, 26, 62, ": Help");
+             
+             canvas_draw_icon(canvas, 75, 55, &I_Pin_back_arrow_10x8);
+             canvas_draw_str(canvas, 88, 62, ": Exit");
         } else {
              canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "Disconnected");
         }
