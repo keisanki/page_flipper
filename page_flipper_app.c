@@ -274,6 +274,7 @@ static void page_flipper_bt_status_callback(BtStatus status, void* context) {
         PageFlipperModel * model,
         {
             model->connected = connected;
+            if(connected) model->started = true;
         },
         true);
 }
