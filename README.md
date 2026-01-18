@@ -54,17 +54,38 @@ Press the **OK** button at any time to access the built-in help pages, which pro
 
 ## Installation
 
+
+
 ### Prerequisites
+
 - A Flipper Zero with custom firmware support.
+
 - `ufbt` (Universal Flipper Build Tool) installed on your computer.
 
+
+
 ### Build and Launch
+
 1. Clone this repository into your `applications_user` folder or a standalone directory.
+
 2. Connect your Flipper Zero via USB.
+
 3. Run the following command:
+
    ```bash
+
    ufbt launch
+
    ```
 
+
+
+## License
+
+This project is licensed under the **GNU General Public License v3.0**. See the [LICENSE](LICENSE) file for the full text.
+
+
+
 ---
+
 *This app has been developed with the help of the Gemini CLI AI.*
