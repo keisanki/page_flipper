@@ -167,66 +167,66 @@ static void page_flipper_draw_callback(Canvas* canvas, void* model) {
     // Left Arrow Box
     canvas_set_color(canvas, ColorBlack);
     if(key == HID_KEYBOARD_LEFT_ARROW) {
-        canvas_draw_rbox(canvas, 10, 15, 35, 30, 5);
+        canvas_draw_rbox(canvas, 10, 16, 35, 30, 5);
         canvas_set_color(canvas, ColorWhite);
     } else {
-        canvas_draw_rframe(canvas, 10, 15, 35, 30, 5);
+        canvas_draw_rframe(canvas, 10, 16, 35, 30, 5);
     }
     // Draw Left Arrow
-    canvas_draw_line(canvas, 18, 29, 37, 29);
     canvas_draw_line(canvas, 18, 30, 37, 30);
-    canvas_draw_line(canvas, 18, 29, 25, 24);
+    canvas_draw_line(canvas, 18, 31, 37, 31);
     canvas_draw_line(canvas, 18, 30, 25, 25);
-    canvas_draw_line(canvas, 18, 29, 25, 34);
+    canvas_draw_line(canvas, 18, 31, 25, 26);
     canvas_draw_line(canvas, 18, 30, 25, 35);
+    canvas_draw_line(canvas, 18, 31, 25, 36);
     
     // Right Arrow Box
     canvas_set_color(canvas, ColorBlack);
     if(key == HID_KEYBOARD_RIGHT_ARROW) {
-        canvas_draw_rbox(canvas, 83, 15, 35, 30, 5);
+        canvas_draw_rbox(canvas, 83, 16, 35, 30, 5);
         canvas_set_color(canvas, ColorWhite);
     } else {
-        canvas_draw_rframe(canvas, 83, 15, 35, 30, 5);
+        canvas_draw_rframe(canvas, 83, 16, 35, 30, 5);
     }
     // Draw Right Arrow
-    canvas_draw_line(canvas, 91, 29, 110, 29);
     canvas_draw_line(canvas, 91, 30, 110, 30);
-    canvas_draw_line(canvas, 110, 29, 103, 24);
+    canvas_draw_line(canvas, 91, 31, 110, 31);
     canvas_draw_line(canvas, 110, 30, 103, 25);
-    canvas_draw_line(canvas, 110, 29, 103, 34);
+    canvas_draw_line(canvas, 110, 31, 103, 26);
     canvas_draw_line(canvas, 110, 30, 103, 35);
+    canvas_draw_line(canvas, 110, 31, 103, 36);
 
     // Up Arrow Box
     canvas_set_color(canvas, ColorBlack);
     if(key == HID_KEYBOARD_UP_ARROW) {
-        canvas_draw_rbox(canvas, 48, 15, 32, 14, 3);
+        canvas_draw_rbox(canvas, 48, 16, 32, 14, 3);
         canvas_set_color(canvas, ColorWhite);
     } else {
-        canvas_draw_rframe(canvas, 48, 15, 32, 14, 3);
+        canvas_draw_rframe(canvas, 48, 16, 32, 14, 3);
     }
     // Draw Up Arrow
-    canvas_draw_line(canvas, 63, 18, 63, 26);
-    canvas_draw_line(canvas, 64, 18, 64, 26);
-    canvas_draw_line(canvas, 63, 18, 59, 22);
-    canvas_draw_line(canvas, 64, 18, 60, 22);
-    canvas_draw_line(canvas, 63, 18, 67, 22);
-    canvas_draw_line(canvas, 64, 18, 68, 22);
+    canvas_draw_line(canvas, 63, 19, 63, 27);
+    canvas_draw_line(canvas, 64, 19, 64, 27);
+    canvas_draw_line(canvas, 63, 19, 59, 23);
+    canvas_draw_line(canvas, 64, 19, 60, 23);
+    canvas_draw_line(canvas, 63, 19, 67, 23);
+    canvas_draw_line(canvas, 64, 19, 68, 23);
 
     // Down Arrow Box
     canvas_set_color(canvas, ColorBlack);
     if(key == HID_KEYBOARD_DOWN_ARROW) {
-        canvas_draw_rbox(canvas, 48, 31, 32, 14, 3);
+        canvas_draw_rbox(canvas, 48, 32, 32, 14, 3);
         canvas_set_color(canvas, ColorWhite);
     } else {
-        canvas_draw_rframe(canvas, 48, 31, 32, 14, 3);
+        canvas_draw_rframe(canvas, 48, 32, 32, 14, 3);
     }
     // Draw Down Arrow
-    canvas_draw_line(canvas, 63, 34, 63, 42);
-    canvas_draw_line(canvas, 64, 34, 64, 42);
-    canvas_draw_line(canvas, 63, 42, 59, 38);
-    canvas_draw_line(canvas, 64, 42, 60, 38);
-    canvas_draw_line(canvas, 63, 42, 67, 38);
-    canvas_draw_line(canvas, 64, 42, 68, 38);
+    canvas_draw_line(canvas, 63, 35, 63, 43);
+    canvas_draw_line(canvas, 64, 35, 64, 43);
+    canvas_draw_line(canvas, 63, 43, 59, 39);
+    canvas_draw_line(canvas, 64, 43, 60, 39);
+    canvas_draw_line(canvas, 63, 43, 67, 39);
+    canvas_draw_line(canvas, 64, 43, 68, 39);
     
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_line(canvas, 0, 52, 128, 52);
